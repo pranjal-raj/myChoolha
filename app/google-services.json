@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "959742660725",
+    "project_id": "mychoolha",
+    "storage_bucket": "mychoolha.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959742660725:android:94df9cefee3511c1eba83c",
+        "android_client_info": {
+          "package_name": "com.example.mychoolha"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjCShMrvnyKBk1d61o689Wzmqz-1F2f84"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

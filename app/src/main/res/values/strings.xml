@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">myChoolha</string>
+    <string name="title_activity_login_signup">LoginSignupActivity</string>
+</resources>
