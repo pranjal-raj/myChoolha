@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -48,20 +49,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleCoroutineScope
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import com.example.mychoolha.data.repository.Resources
 import com.example.mychoolha.viewModel.AuthViewModel
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlin.properties.Delegates
 
 lateinit var errorVisibility : MutableState<Boolean>
 lateinit var error : MutableState<String>
+var visibility = mutableStateOf(true)
+
 //lateinit var signupflow : State<Resources<FirebaseUser?>?>
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,6 +97,10 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
     var password_duplicate by remember {
         mutableStateOf("12345goo")
     }
+
+    var startCollecting = remember {
+        mutableStateOf(false)
+    }
     error = remember {
         mutableStateOf("")
     }
@@ -91,16 +109,20 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
         mutableStateOf(false)
     }
 
-     var signupflow = viewModel.signUpFlow.collectAsState()
+
+    val signupflow = viewModel.signUpFlow.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val lifecycleOwener = LocalLifecycleOwner.current
 
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerpadding ->
-
+        loadingcircle(visibility)
         Column(
             modifier = Modifier
                 .padding(innerpadding)
                 .fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween
         ) {
+
             Column(
                 modifier = Modifier
                     .padding(horizontal = 20.dp)
@@ -114,7 +136,7 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
                 )
                 Text(text = "Create A New Account", fontSize = 20.sp)
                 Spacer(modifier = Modifier.height(20.dp))
-                CircularProgressIndicator()
+
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(1f),
                     value = fullName, onValueChange = { fullName = it },
@@ -253,13 +275,14 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
                 )
 
                 Spacer(modifier = Modifier.height(40.dp))
-
                 Button(
-                    onClick = {signUpChecker(phoneNumber,fullName,email,password,password_duplicate, viewModel) },
-                    modifier = Modifier
-                        .fillMaxWidth(1f)
-                        .height(ButtonDefaults.MinHeight.plus(5.dp))
-                        .padding(horizontal = 8.dp),
+                    onClick = {
+                        signUpChecker(phoneNumber,fullName,email,password,password_duplicate, viewModel).also{startCollecting.value=true}
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(1f)
+                            .height(ButtonDefaults.MinHeight.plus(5.dp))
+                            .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp)
                 ) {
@@ -286,7 +309,7 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
                         fontSize = 16.sp,
                         color = Color.DarkGray
                     )
-                    TextButton(onClick = { navController.navigate("login") }) {
+                    TextButton(onClick = { navController.popBackStack()}) {
                         Text(
                             text = "Login Here",
                             fontSize = 16.sp,
@@ -303,30 +326,51 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
 
         }
     }
-    signupflow.value.let {
-        when (it) {
-            is Resources.Failure -> {
-                val context = LocalContext.current
-                Toast.makeText(context, "Error : ${it.exception.message} ", Toast.LENGTH_SHORT).show()
+
+
+    lifecycleOwener.lifecycleScope.launch {
+        lifecycleOwener.repeatOnLifecycle(Lifecycle.State.RESUMED)
+        {
+           // Log.d("fromRegisterScreen.kt", signupflow.value.toString())
+            signupflow.value.let {
+                if(startCollecting.value) {
+                    when (it) {
+                        is Resources.Failure -> {
+                            startCollecting.value = false
+                            Log.d("fromRegisterScreen.kt", "Failure")
+                            Toast.makeText(
+                                context,
+                                "Error : ${it.exception.message} ",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+
+                        Resources.Loading -> {
+                            Log.d("fromRegisterScreen.kt", "LOADING...")
+
+
+
+
+                        }
+
+                        is Resources.Success -> {
+                            startCollecting.value = false
+                            Log.d("fromRegisterScreen.kt", "Success")
+                            navController.apply {
+                                popBackStack()
+                                popBackStack()
+                                navigate("home")
+                            }
+                        }
+
+                        else -> {}
+                    }
+                }
             }
-
-            Resources.Loading -> {
-
-            }
-
-            is Resources.Success -> {
-
-                navController.apply {
-                    popBackStack()
-                    popBackStack()
-                    navigate("home") }
-            }
-
-            else -> {}
         }
     }
-
 }
+
 
 
 
@@ -341,7 +385,7 @@ fun isEmailValid(email: String): Boolean {
                     if (password == password_duplicate) {
                         errorVisibility.value = false
                         viewModel.signUp(fullName, email, password)
-                        Log.d("jhoom", "ho gya")
+                        //Log.d("jhoom", "ho gya")
                     }
                     else {
                         errorVisibility.value = true
@@ -385,7 +429,6 @@ fun isEmailValid(email: String): Boolean {
 
     @Composable
     fun errorChecker(visibility: MutableState<Boolean>) {
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth(1f)
@@ -415,6 +458,19 @@ fun isEmailValid(email: String): Boolean {
             }
 
         }
+
+
+@Composable
+fun loadingcircle(visibility: MutableState<Boolean>)
+{
+    if(visibility.value) {
+        CircularProgressIndicator(
+            modifier = Modifier
+                .padding(180.dp)
+                .size(50.dp)
+        )
+    }
+}
 
 
 

@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.mychoolha.Presentation.navigation.myNavGraph
@@ -79,7 +80,7 @@ import dagger.hilt.android.AndroidEntryPoint
 fun LoginScreen(viewModel : AuthViewModel, navController:NavHostController)
 {
 
-    val loginFlow = viewModel.loginFlow.collectAsState()
+    val loginFlow = viewModel.loginFlow.collectAsStateWithLifecycle()
     var phoneNumber by remember {
         mutableStateOf("")
     }
@@ -179,23 +180,23 @@ fun LoginScreen(viewModel : AuthViewModel, navController:NavHostController)
 
     }
 
-    loginFlow.value.let {
-        when(it)
-        {
-            is Resources.Failure -> {
-                val context = LocalContext.current
-                Toast.makeText(context, "Error : ${it.exception.message} ", Toast.LENGTH_SHORT)
-            }
-            Resources.Loading -> {
-                CircularProgressIndicator()
-            }
-            is Resources.Success -> {
-                navController.navigate("home").apply {
-                    navController.popBackStack()
-                }
-            }
-            else -> {}
-        }
-    }
+//    loginFlow.value.let {
+//        when(it)
+//        {
+//            is Resources.Failure -> {
+//                val context = LocalContext.current
+//                Toast.makeText(context, "Error : ${it.exception.message} ", Toast.LENGTH_SHORT)
+//            }
+//            Resources.Loading -> {
+//                CircularProgressIndicator()
+//            }
+//            is Resources.Success -> {
+//                navController.navigate("home").apply {
+//                    navController.popBackStack()
+//                }
+//            }
+//            else -> {}
+//        }
+//    }
 }
 

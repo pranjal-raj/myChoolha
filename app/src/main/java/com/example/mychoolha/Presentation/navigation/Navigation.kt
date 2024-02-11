@@ -26,7 +26,7 @@ fun myNavGraph(viewModel: AuthViewModel ,navController: NavHostController)
             RegisterScreen(viewModel, navController)
         }
         composable("home"){
-            home()
+            home(viewModel)
         }
 
     }
