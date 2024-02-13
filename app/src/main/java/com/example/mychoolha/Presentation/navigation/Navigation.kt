@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.mychoolha.Presentation.home
+import com.example.mychoolha.Presentation.screens.Profile.home
 import com.example.mychoolha.Presentation.screens.LoginSignupFlow.LoginScreen
 import com.example.mychoolha.Presentation.screens.LoginSignupFlow.RegisterScreen
 import com.example.mychoolha.viewModel.AuthViewModel

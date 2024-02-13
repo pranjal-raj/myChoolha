@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,7 +33,7 @@ class AuthViewModel @Inject constructor(
 
     init {
         if(repository.currentUser != null){
-            _loginFlow.value = Resources.Success(repository.currentUser!!)
+           // _loginFlow.value = Resources.Success(repository.currentUser!!)
         }
     }
 
@@ -44,9 +45,9 @@ class AuthViewModel @Inject constructor(
 
     fun signUp(name : String, email : String, password: String ) =
         viewModelScope.launch {
-            _signUpFlow.value =  Resources.Loading
+            _signUpFlow.update {Resources.Loading}
            val result = repository.signup(name, email, password)
-            _signUpFlow.value = result
+            _signUpFlow.update { result }
 
         }
 
@@ -57,6 +58,13 @@ class AuthViewModel @Inject constructor(
         _signUpFlow.value =  null
         _loginFlow.value =  null
     }
+
+    fun resetStates()
+    {
+        _loginFlow.update { null }
+        _signUpFlow.update { null }
+    }
+
 
 
 }

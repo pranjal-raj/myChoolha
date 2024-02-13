@@ -1,8 +1,6 @@
 package com.example.mychoolha.Presentation.screens.LoginSignupFlow
 
 
-import android.content.Context
-import android.opengl.Visibility
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -37,9 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,28 +52,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
+import com.example.mychoolha.Presentation.screens.LoginSignupFlow.util.errorChecker
 import com.example.mychoolha.data.repository.Resources
 import com.example.mychoolha.viewModel.AuthViewModel
-import com.google.firebase.auth.FirebaseUser
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlin.properties.Delegates
 
-lateinit var errorVisibility : MutableState<Boolean>
-lateinit var error : MutableState<String>
-var visibility = mutableStateOf(true)
-
-//lateinit var signupflow : State<Resources<FirebaseUser?>?>
+private lateinit var errorVisibility : MutableState<Boolean>
+private lateinit var error : MutableState<String>
+private var circleVisibility = mutableStateOf(false)
+var c = 0
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,9 +86,10 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
         mutableStateOf("12345goo")
     }
 
-    var startCollecting = remember {
+    var startCollecting by remember {
         mutableStateOf(false)
     }
+
     error = remember {
         mutableStateOf("")
     }
@@ -110,13 +99,13 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
     }
 
 
-    val signupflow = viewModel.signUpFlow.collectAsStateWithLifecycle()
+    val signUpFlow = viewModel.signUpFlow.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwener = LocalLifecycleOwner.current
 
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerpadding ->
-        loadingcircle(visibility)
+        loadingcircle(circleVisibility)
         Column(
             modifier = Modifier
                 .padding(innerpadding)
@@ -277,7 +266,7 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
                 Spacer(modifier = Modifier.height(40.dp))
                 Button(
                     onClick = {
-                        signUpChecker(phoneNumber,fullName,email,password,password_duplicate, viewModel).also{startCollecting.value=true}
+                        signUpChecker(phoneNumber,fullName,email,password,password_duplicate, viewModel).also{startCollecting=true}
                         },
                         modifier = Modifier
                             .fillMaxWidth(1f)
@@ -320,7 +309,7 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
 
                 }
 
-                errorChecker(errorVisibility)
+                errorChecker(error,errorVisibility)
             }
 
 
@@ -328,16 +317,12 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
     }
 
 
-    lifecycleOwener.lifecycleScope.launch {
-        lifecycleOwener.repeatOnLifecycle(Lifecycle.State.RESUMED)
-        {
-           // Log.d("fromRegisterScreen.kt", signupflow.value.toString())
-            signupflow.value.let {
-                if(startCollecting.value) {
+    //UPDATE UI CODE
+    LaunchedEffect(key1 = signUpFlow.value , block = {
+            signUpFlow.value.let {
                     when (it) {
                         is Resources.Failure -> {
-                            startCollecting.value = false
-                            Log.d("fromRegisterScreen.kt", "Failure")
+                            circleVisibility.value = false
                             Toast.makeText(
                                 context,
                                 "Error : ${it.exception.message} ",
@@ -346,16 +331,11 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
                         }
 
                         Resources.Loading -> {
-                            Log.d("fromRegisterScreen.kt", "LOADING...")
-
-
-
-
+                            circleVisibility.value = true
                         }
 
                         is Resources.Success -> {
-                            startCollecting.value = false
-                            Log.d("fromRegisterScreen.kt", "Success")
+                            circleVisibility.value = false
                             navController.apply {
                                 popBackStack()
                                 popBackStack()
@@ -365,20 +345,19 @@ fun RegisterScreen(viewModel: AuthViewModel, navController: NavHostController) {
 
                         else -> {}
                     }
-                }
             }
-        }
     }
+        )
 }
 
 
 
 
-fun isEmailValid(email: String): Boolean {
-        return email.contains('@')
-    }
+    fun isEmailValid(email: String): Boolean {
+            return email.contains('@')
+        }
 
-    fun signUpChecker(phoneNumber:String,fullName:String,email:String,password:String,password_duplicate:String, viewModel: AuthViewModel) {
+    private fun signUpChecker(phoneNumber:String,fullName:String,email:String,password:String,password_duplicate:String, viewModel: AuthViewModel) {
         if (phoneNumber.isNotEmpty() && fullName.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && password_duplicate.isNotEmpty()) {
             if (phoneNumber.length == 10) {
                 if (isEmailValid(email)) {
@@ -410,58 +389,8 @@ fun isEmailValid(email: String): Boolean {
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    @Composable
-    fun errorChecker(visibility: MutableState<Boolean>) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(1f)
-                    .alpha(if (visibility.value) 1f else 0f)
-                    .background(Color.Red)
-            )
-            {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                    , modifier = Modifier
-                        .fillMaxWidth(1f)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Sharp.Close,
-                        contentDescription = "worng",
-                        tint = Color.White
-                    )
-                    Text(
-                        text = error.value,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 20.dp)
-                    )
-                }
-            }
-
-        }
-
-
 @Composable
-fun loadingcircle(visibility: MutableState<Boolean>)
+private fun loadingcircle(visibility: MutableState<Boolean>)
 {
     if(visibility.value) {
         CircularProgressIndicator(

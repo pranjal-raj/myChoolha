@@ -1,4 +1,4 @@
-package com.example.mychoolha.Presentation
+package com.example.mychoolha.Presentation.screens.Profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
